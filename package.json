@@ -1,5 +1,5 @@
 {
-  "name": "@mhd.ubeyd/simple-todo-prisma-client",
+  "name": "simple-todo-prisma-client",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
