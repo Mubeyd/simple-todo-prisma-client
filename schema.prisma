@@ -1,0 +1,235 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["clientExtensions", "metrics"]
+  output          = "../../simple-todo-prisma-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  firstName         String
+  lastName          String
+  password          String
+  verificationCode  String    @default(nanoid())
+  passwordResetCode String?
+  verified          Boolean   @default(false)
+  sessions          Session[]
+  role              UserRole  @default(USER)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  createdByUserId String?
+  createdByUser   User?    @relation("CreatedUserToUser", fields: [createdByUserId], references: [id])
+  createdUsers    User[]   @relation("CreatedUserToUser")
+  updatedByUserId String?
+  updatedByUser   User?    @relation("UpdatedUserToUser", fields: [updatedByUserId], references: [id])
+  updatedUsers    User[]   @relation("UpdatedUserToUser")
+
+  createdCategories Category[] @relation("CreatedCategoryToUser")
+  updatedCategories Category[] @relation("UpdatedCategoryToUser")
+  createdProducts   Product[]  @relation("CreatedProductToUser")
+  updatedProducts   Product[]  @relation("UpdatedProductToUser")
+}
+
+model Session {
+  id     String  @id @default(uuid())
+  user   User    @relation(fields: [userId], references: [id])
+  userId String
+  valid  Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id          String     @id @default(uuid())
+  name        String
+  description String
+  imagePath   String
+  parent      Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
+  parentId    String?
+  children    Category[] @relation("CategoryToCategory")
+  products    Product[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  createdByUserId String?
+  createdByUser   User?    @relation("CreatedCategoryToUser", fields: [createdByUserId], references: [id])
+  updatedByUserId String?
+  updatedByUser   User?    @relation("UpdatedCategoryToUser", fields: [updatedByUserId], references: [id])
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  imagePath   String
+  price       Decimal  @db.Decimal(32, 2)
+  isActive    Boolean  @default(true)
+  category    Category @relation(fields: [categoryId], references: [id])
+  categoryId  String
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  createdByUserId String?
+  createdByUser   User?    @relation("CreatedProductToUser", fields: [createdByUserId], references: [id])
+  updatedByUserId String?
+  updatedByUser   User?    @relation("UpdatedProductToUser", fields: [updatedByUserId], references: [id])
+
+  @@index([categoryId])
+}
+
+enum UserRole {
+  SUPERUSER
+  ADMIN
+  USER
+}
+
+/// you can got for the translations for name and description of the product and category tables with a json field (key value pair)
+/// or you can create a new table for the translations and create a relation with the product and category table
+
+// model Languages {
+//   id              String            @id @default(uuid())
+//   name            String
+//   code            String            @unique
+//   ItemTranslation ItemTranslation[]
+//   createdAt       DateTime          @default(now())
+//   updatedAt       DateTime          @updatedAt
+// }
+
+// model ItemTranslation {
+//   id          String    @id @default(uuid())
+//   name        String
+//   description String
+//   languageId  String
+//   language    Languages @relation(fields: [languageId], references: [id])
+//   modelId     String
+//   model       Model
+//   createdAt   DateTime  @default(now())
+//   updatedAt   DateTime  @updatedAt
+// }
+
+// enum Model {
+//   Product
+//   Category
+// }
+
+// Senario 1 to fetch the product with specific language 
+// const product  = await prisma.product.findUnique({
+//   where: {
+//     id: "product id"
+//   },
+//   include: {
+//     categories: true,
+//     itemTranslation: {
+//       where: {
+//         language: {
+//           code: "en"
+//         }
+//       }
+//     }
+//   }
+// })
+
+// Senario 2 to fetch the product with specific language
+// const product  = await prisma.product.findUnique({
+//   where: {
+//     id: "product id"
+//   },
+//   include: {
+//     categories: true,
+//     itemTranslation: {
+//       where: {
+//         language: {
+//           code: "en"
+//         }
+//       }
+//     }
+//   }
+// })
+
+// Senario 1 to add the product with specific language
+// const product = await prisma.product.create({
+//   data: {
+//     name: "product name",
+//     description: "product description",
+//     price: 100,
+//     categories: {
+//       connect: {
+//         id: "category id"
+//       }
+//     },
+//     itemTranslation: {
+//       create: {
+//         name: "product name",
+//         description: "product description",
+//         language: {
+//           connect: {
+//             code: "en"
+//           }
+//         }
+//       }
+//     }
+//   }
+// })
+
+// Senario 2 to add the product with specific language
+// const product = await prisma.product.create({
+//   data: {
+//     name: "product name",
+//     description: "product description",
+//     price: 100,
+//     categories: {
+//       connect: {
+//         id: "category id"
+//       }
+//     },
+//     itemTranslation: {
+//       create: {
+//         name: "product name",
+//         description: "product description",
+//         language: {
+//           connect: {
+//             code: "en"
+//           }
+//         }  
+//       }
+//     }
+//   }
+// })
+
+// senario 1 to update the product with specific language
+// const product = await prisma.product.update({
+//   where: {
+//     id: "product id"
+//   },
+//   data: {
+//     name: "product name",
+//     description: "product description",
+//     price: 100,
+//     categories: {
+//       connect: {
+//         id: "category id"
+//       }
+//     },
+//     itemTranslation: {
+//       update: {
+//         name: "product name",
+//         description: "product description",
+//         language: {
+//           connect: {
+//             code: "en"
+//           }
+//         }
+//       }
+//     }
+//   }
+// })
